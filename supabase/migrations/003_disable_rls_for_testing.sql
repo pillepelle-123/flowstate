@@ -1,0 +1,9 @@
+-- Temporär RLS deaktivieren für Tests
+-- WICHTIG: Nur für Entwicklung! In Produktion NICHT verwenden!
+
+ALTER TABLE workshops DISABLE ROW LEVEL SECURITY;
+ALTER TABLE sessions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE workshop_states DISABLE ROW LEVEL SECURITY;
+ALTER TABLE participants DISABLE ROW LEVEL SECURITY;
+ALTER TABLE interactions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE method_templates DISABLE ROW LEVEL SECURITY;
