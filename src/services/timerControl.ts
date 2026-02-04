@@ -68,5 +68,26 @@ export class TimerControlService {
         session_ends_at: null,
       })
       .eq('workshop_id', workshopId)
+
+    // Check if this was the last session
+    const { data: sessions } = await supabase
+      .from('sessions')
+      .select('id, order_index')
+      .eq('workshop_id', workshopId)
+      .order('order_index', { ascending: true })
+
+    if (sessions && sessions.length > 0) {
+      const lastSession = sessions[sessions.length - 1]
+      if (lastSession.id === sessionId) {
+        // Mark workshop as completed
+        await supabase
+          .from('workshops')
+          .update({
+            is_completed: true,
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', workshopId)
+      }
+    }
   }
 }

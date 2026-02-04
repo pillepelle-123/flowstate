@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native'
+import { View, StyleSheet, ScrollView, Alert } from 'react-native'
+import { Appbar, Text, Button, IconButton, useTheme, Surface, Chip } from 'react-native-paper'
+import { useRouter } from 'expo-router'
 import { WorkshopService } from '../../services/workshop'
 import { WorkshopForm } from './WorkshopForm'
 import { SessionEditor } from './SessionEditor'
@@ -17,6 +19,8 @@ interface PlanningEditorProps {
 }
 
 export function PlanningEditor({ workshopId, onSave }: PlanningEditorProps) {
+  const theme = useTheme()
+  const router = useRouter()
   const [workshop, setWorkshop] = useState<Workshop | null>(null)
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(false)
@@ -61,7 +65,7 @@ export function PlanningEditor({ workshopId, onSave }: PlanningEditorProps) {
         date: new Date(formData.date).toISOString(),
         total_duration: formData.totalDuration,
         buffer_strategy: formData.bufferStrategy,
-      })
+      }, formData.userId)
       setWorkshop(newWorkshop)
       setSessions([])
       setShowWorkshopForm(false)
@@ -176,31 +180,36 @@ export function PlanningEditor({ workshopId, onSave }: PlanningEditorProps) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.title}>{workshop?.title || 'Neuer Workshop'}</Text>
-          <Text style={styles.subtitle}>
-            {totalPlannedDuration} / {workshop?.total_duration} Min
-            {isOverTime && <Text style={styles.warning}> ⚠️ Überschreitung!</Text>}
+      <Appbar.Header>
+        <Appbar.BackAction onPress={() => router.back()} />
+        <Appbar.Content title={workshop?.title || 'Workshop Planner'} />
+        <Appbar.Action
+          icon={showMethodLibrary ? 'close' : 'book-open-variant'}
+          onPress={() => setShowMethodLibrary(!showMethodLibrary)}
+        />
+        <Appbar.Action
+          icon={showTimeline ? 'format-list-bulleted' : 'chart-timeline'}
+          onPress={() => setShowTimeline(!showTimeline)}
+        />
+      </Appbar.Header>
+
+      <Surface style={[styles.infoBar, { backgroundColor: theme.colors.surface }]} elevation={1}>
+        <View style={styles.infoContent}>
+          <Text variant="bodyMedium">
+            {totalPlannedDuration} / {workshop?.total_duration} min
           </Text>
+          {isOverTime && (
+            <Chip
+              mode="flat"
+              icon="alert"
+              style={{ backgroundColor: theme.colors.errorContainer }}
+              textStyle={{ color: theme.colors.onErrorContainer }}
+            >
+              Over time!
+            </Chip>
+          )}
         </View>
-        <View style={styles.headerButtons}>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => setShowMethodLibrary(!showMethodLibrary)}
-          >
-            <Text style={styles.headerButtonText}>📚</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => setShowTimeline(!showTimeline)}
-          >
-            <Text style={styles.headerButtonText}>
-              {showTimeline ? '📋' : '📊'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      </Surface>
 
       {showMethodLibrary ? (
         <MethodLibrary onSelectTemplate={handleTemplateSelect} />
@@ -218,15 +227,17 @@ export function PlanningEditor({ workshopId, onSave }: PlanningEditorProps) {
         />
       )}
 
-      <TouchableOpacity
-        style={styles.addButton}
+      <Button
+        mode="contained"
+        icon="plus"
         onPress={() => {
           setEditingSession(undefined)
           setShowSessionEditor(true)
         }}
+        style={styles.addButton}
       >
-        <Text style={styles.addButtonText}>+ Session hinzufügen</Text>
-      </TouchableOpacity>
+        Add Session
+      </Button>
 
       <SessionEditor
         visible={showSessionEditor}
@@ -244,57 +255,18 @@ export function PlanningEditor({ workshopId, onSave }: PlanningEditorProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
   },
-  header: {
+  infoBar: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  infoContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 24,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    justifyContent: 'space-between',
   },
-  headerLeft: {
-    flex: 1,
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  headerButton: {
-    padding: 12,
-    backgroundColor: '#eff6ff',
-    borderRadius: 8,
-  },
-  headerButtonText: {
-    fontSize: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-    marginTop: 4,
-  },
-  warning: {
-    color: '#ef4444',
-    fontWeight: '600',
-  },
-
   addButton: {
     margin: 16,
-    padding: 16,
-    backgroundColor: '#3b82f6',
     borderRadius: 12,
-    alignItems: 'center',
-  },
-  addButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
   },
 })

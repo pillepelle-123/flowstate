@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { View, Text, TouchableOpacity, ScrollView, Linking, Alert } from 'react-native'
+import { View, ScrollView, Linking, Alert, StyleSheet } from 'react-native'
+import { Text, Surface, Button, Card, Chip } from 'react-native-paper'
 import { ParticipantService } from '../../services/participant'
 import { NotificationService } from '../../services/notifications'
 import { OfflineService } from '../../services/offline'
@@ -129,123 +130,127 @@ export function ParticipantDashboard({ workshopId, participant }: ParticipantDas
 
   return (
     <>
-      <ScrollView className="flex-1 bg-gray-50">
-        <View className="p-6">
-          {/* Workshop Header */}
-          <View className="bg-white rounded-lg p-4 mb-4 shadow-sm">
-            <Text className="text-sm text-gray-500">Workshop</Text>
-            <Text className="text-2xl font-bold text-gray-900 mt-1">
-              {workshop?.title || 'Lädt...'}
-            </Text>
-            <Text className="text-sm text-gray-600 mt-2">
-              Teilnehmer: {participant.display_name || participant.anonymous_id}
-            </Text>
-          </View>
+      <ScrollView style={styles.container}>
+        <View style={styles.content}>
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="labelMedium" style={styles.label}>Workshop</Text>
+              <Text variant="headlineMedium" style={styles.workshopTitle}>
+                {workshop?.title || 'Lädt...'}
+              </Text>
+              <Text variant="bodyMedium" style={styles.participantInfo}>
+                Teilnehmer: {participant.display_name || participant.anonymous_id}
+              </Text>
+            </Card.Content>
+          </Card>
 
-          {/* Current Session */}
           {currentSession && (
-            <View className="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-200">
-              <Text className="text-sm text-blue-600 font-semibold">Aktuelle Phase</Text>
-              <Text className="text-xl font-bold text-blue-900 mt-1">
+            <Surface style={styles.sessionCard} elevation={2}>
+              <Chip icon="clock-outline" style={styles.sessionChip}>Aktuelle Phase</Chip>
+              <Text variant="headlineSmall" style={styles.sessionTitle}>
                 {currentSession.title}
               </Text>
               
-              {/* Timer */}
-              <View className="mt-4 items-center">
-                <View className="bg-white rounded-full px-6 py-3 shadow-md">
-                  <Text className="text-3xl font-bold text-gray-900">
+              <View style={styles.timerContainer}>
+                <Surface style={styles.timerSurface} elevation={3}>
+                  <Text variant="displaySmall" style={styles.timerText}>
                     {status === 'running' ? formatTime(remainingMs) : '--:--'}
                   </Text>
-                </View>
-                <Text className="text-sm text-gray-600 mt-2">
+                </Surface>
+                <Text variant="bodyMedium" style={styles.timerLabel}>
                   {status === 'running' ? 'Verbleibende Zeit' : 'Timer pausiert'}
                 </Text>
               </View>
-            </View>
+            </Surface>
           )}
 
-          {/* Task Description */}
           {currentSession?.description && (
-            <View className="bg-white rounded-lg p-4 mb-4 shadow-sm">
-              <Text className="text-sm text-gray-500 font-semibold mb-2">Deine Aufgabe:</Text>
-              <Text className="text-base text-gray-900">{currentSession.description}</Text>
-            </View>
+            <Card style={styles.card}>
+              <Card.Content>
+                <Text variant="labelLarge" style={styles.sectionLabel}>Deine Aufgabe:</Text>
+                <Text variant="bodyLarge">{currentSession.description}</Text>
+              </Card.Content>
+            </Card>
           )}
 
-          {/* Interaktions-Buttons */}
           {currentSession && (
-            <View className="bg-white rounded-lg p-4 mb-4 shadow-sm">
-              <Text className="text-sm text-gray-500 font-semibold mb-3">Interaktionen:</Text>
-              
-              <TouchableOpacity
-                onPress={() => setActiveInteraction('ready')}
-                className="bg-green-500 py-3 px-4 rounded-lg mb-2"
-              >
-                <Text className="text-white font-semibold text-center">
-                  ✋ Ich bin fertig
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => setActiveInteraction('matrix')}
-                className="bg-purple-500 py-3 px-4 rounded-lg mb-2"
-              >
-                <Text className="text-white font-semibold text-center">
-                  📊 2D-Matrix Voting
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => setActiveInteraction('sticky')}
-                className="bg-yellow-500 py-3 px-4 rounded-lg"
-              >
-                <Text className="text-white font-semibold text-center">
-                  📝 Sticky Note erstellen
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Materials */}
-          {materials && materials.length > 0 && (
-            <View className="bg-white rounded-lg p-4 mb-4 shadow-sm">
-              <Text className="text-sm text-gray-500 font-semibold mb-3">Materialien:</Text>
-              {materials.map((url, index) => (
-                <TouchableOpacity
-                  key={index}
-                  onPress={() => handleOpenMaterial(url)}
-                  className="bg-blue-500 py-3 px-4 rounded-lg mb-2"
+            <Card style={styles.card}>
+              <Card.Content>
+                <Text variant="labelLarge" style={styles.sectionLabel}>Interaktionen:</Text>
+                
+                <Button
+                  mode="contained"
+                  onPress={() => setActiveInteraction('ready')}
+                  style={styles.interactionButton}
+                  buttonColor="#10b981"
+                  icon="hand-back-right"
                 >
-                  <Text className="text-white font-semibold text-center">
-                    Material {index + 1} öffnen
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                  Ich bin fertig
+                </Button>
+
+                <Button
+                  mode="contained"
+                  onPress={() => setActiveInteraction('matrix')}
+                  style={styles.interactionButton}
+                  buttonColor="#8b5cf6"
+                  icon="chart-scatter-plot"
+                >
+                  2D-Matrix Voting
+                </Button>
+
+                <Button
+                  mode="contained"
+                  onPress={() => setActiveInteraction('sticky')}
+                  style={styles.interactionButton}
+                  buttonColor="#f59e0b"
+                  icon="note-edit"
+                >
+                  Sticky Note erstellen
+                </Button>
+              </Card.Content>
+            </Card>
           )}
 
-          {/* Help Button */}
-          <TouchableOpacity
-            onPress={handleHelpRequest}
-            className="bg-orange-500 py-4 px-6 rounded-lg shadow-md"
-          >
-            <Text className="text-white font-bold text-center text-lg">
-              🆘 Hilfe anfordern
-            </Text>
-          </TouchableOpacity>
+          {materials && materials.length > 0 && (
+            <Card style={styles.card}>
+              <Card.Content>
+                <Text variant="labelLarge" style={styles.sectionLabel}>Materialien:</Text>
+                {materials.map((url, index) => (
+                  <Button
+                    key={index}
+                    mode="contained-tonal"
+                    onPress={() => handleOpenMaterial(url)}
+                    style={styles.materialButton}
+                    icon="file-document"
+                  >
+                    Material {index + 1} öffnen
+                  </Button>
+                ))}
+              </Card.Content>
+            </Card>
+          )}
 
-          {/* Info */}
+          <Button
+            mode="contained"
+            onPress={handleHelpRequest}
+            style={styles.helpButton}
+            buttonColor="#f97316"
+            icon="help-circle"
+            contentStyle={styles.helpButtonContent}
+          >
+            Hilfe anfordern
+          </Button>
+
           {!currentSession && (
-            <View className="bg-yellow-50 rounded-lg p-4 mt-4 border border-yellow-200">
-              <Text className="text-yellow-800 text-center">
+            <Surface style={styles.infoCard} elevation={1}>
+              <Text variant="bodyLarge" style={styles.infoText}>
                 Der Workshop hat noch nicht begonnen oder ist beendet.
               </Text>
-            </View>
+            </Surface>
           )}
         </View>
       </ScrollView>
 
-      {/* Interaktions-Modal */}
       {currentSession && (
         <InteractionContainer
           sessionId={currentSession.id}
@@ -257,3 +262,85 @@ export function ParticipantDashboard({ workshopId, participant }: ParticipantDas
     </>
   )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  content: {
+    padding: 16,
+  },
+  card: {
+    marginBottom: 16,
+    borderRadius: 12,
+  },
+  label: {
+    opacity: 0.7,
+  },
+  workshopTitle: {
+    fontWeight: 'bold',
+    marginTop: 4,
+  },
+  participantInfo: {
+    marginTop: 8,
+    opacity: 0.8,
+  },
+  sessionCard: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: '#eff6ff',
+  },
+  sessionChip: {
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+  },
+  sessionTitle: {
+    fontWeight: 'bold',
+    color: '#1e40af',
+  },
+  timerContainer: {
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  timerSurface: {
+    borderRadius: 999,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  timerText: {
+    fontWeight: 'bold',
+  },
+  timerLabel: {
+    marginTop: 8,
+    opacity: 0.7,
+  },
+  sectionLabel: {
+    marginBottom: 12,
+    fontWeight: 'bold',
+  },
+  interactionButton: {
+    marginBottom: 8,
+    borderRadius: 12,
+  },
+  materialButton: {
+    marginBottom: 8,
+    borderRadius: 12,
+  },
+  helpButton: {
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  helpButtonContent: {
+    paddingVertical: 8,
+  },
+  infoCard: {
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#fef3c7',
+  },
+  infoText: {
+    textAlign: 'center',
+    color: '#92400e',
+  },
+})

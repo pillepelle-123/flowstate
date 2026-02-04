@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native'
+import { View, ScrollView, StyleSheet } from 'react-native'
+import { Button, Text, TextInput, Surface } from 'react-native-paper'
 import { ParticipantService } from '../../services/participant'
 
 interface StickyNoteProps {
@@ -38,58 +39,121 @@ export function StickyNote({ sessionId, participantId, onSubmit }: StickyNotePro
   }
 
   return (
-    <ScrollView className="flex-1">
-      <View className="p-4">
-        <Text className="text-lg font-bold mb-4">Sticky Note erstellen</Text>
+    <ScrollView style={styles.container}>
+      <View style={styles.content}>
+        <Text variant="titleLarge" style={styles.title}>Sticky Note erstellen</Text>
 
-        {/* Farb-Auswahl */}
-        <Text className="text-sm text-gray-600 mb-2">Farbe wählen:</Text>
-        <View className="flex-row mb-4 gap-2">
+        <Text variant="bodyMedium" style={styles.label}>Farbe wählen:</Text>
+        <View style={styles.colorRow}>
           {COLORS.map((color) => (
-            <TouchableOpacity
+            <Surface
               key={color.value}
-              onPress={() => setSelectedColor(color.value)}
-              className={`w-12 h-12 rounded-lg ${
-                selectedColor === color.value ? 'border-4 border-gray-900' : 'border border-gray-300'
-              }`}
-              style={{ backgroundColor: color.value }}
-            />
+              style={[
+                styles.colorButton,
+                { backgroundColor: color.value },
+                selectedColor === color.value && styles.colorButtonSelected,
+              ]}
+              elevation={selectedColor === color.value ? 4 : 1}
+            >
+              <Button
+                mode="text"
+                onPress={() => setSelectedColor(color.value)}
+                style={styles.colorButtonInner}
+              >
+                {''}
+              </Button>
+            </Surface>
           ))}
         </View>
 
-        {/* Text-Eingabe */}
-        <View
-          className="p-4 rounded-lg min-h-[200px] mb-4"
-          style={{ backgroundColor: selectedColor }}
-        >
+        <Surface style={[styles.notePreview, { backgroundColor: selectedColor }]} elevation={2}>
           <TextInput
             value={text}
             onChangeText={setText}
             placeholder="Schreibe deine Idee..."
             placeholderTextColor="#666"
             multiline
-            className="text-base text-gray-900 flex-1"
+            mode="flat"
+            style={styles.textInput}
             maxLength={500}
+            underlineColor="transparent"
+            activeUnderlineColor="transparent"
           />
-        </View>
+        </Surface>
 
-        <Text className="text-xs text-gray-500 mb-4 text-right">
+        <Text variant="bodySmall" style={styles.charCount}>
           {text.length}/500 Zeichen
         </Text>
 
-        {/* Submit Button */}
-        <TouchableOpacity
+        <Button
+          mode="contained"
           onPress={handleSubmit}
           disabled={!text.trim() || submitting}
-          className={`py-4 px-6 rounded-lg ${
-            !text.trim() || submitting ? 'bg-gray-400' : 'bg-blue-500'
-          }`}
+          loading={submitting}
+          style={styles.submitButton}
+          contentStyle={styles.submitButtonContent}
         >
-          <Text className="text-white font-bold text-center text-lg">
-            {submitting ? 'Sende...' : '📌 Sticky Note absenden'}
-          </Text>
-        </TouchableOpacity>
+          📌 Sticky Note absenden
+        </Button>
       </View>
     </ScrollView>
   )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  content: {
+    padding: 16,
+  },
+  title: {
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  label: {
+    opacity: 0.7,
+    marginBottom: 8,
+  },
+  colorRow: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    gap: 8,
+  },
+  colorButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  colorButtonSelected: {
+    borderWidth: 3,
+    borderColor: '#111',
+  },
+  colorButtonInner: {
+    width: '100%',
+    height: '100%',
+    margin: 0,
+  },
+  notePreview: {
+    padding: 16,
+    borderRadius: 12,
+    minHeight: 200,
+    marginBottom: 8,
+  },
+  textInput: {
+    backgroundColor: 'transparent',
+    fontSize: 16,
+  },
+  charCount: {
+    textAlign: 'right',
+    opacity: 0.6,
+    marginBottom: 16,
+  },
+  submitButton: {
+    borderRadius: 12,
+  },
+  submitButtonContent: {
+    paddingVertical: 8,
+  },
+})

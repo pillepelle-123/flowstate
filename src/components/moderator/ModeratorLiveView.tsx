@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { View, Text, ScrollView, ActivityIndicator } from 'react-native'
+import { View, ScrollView, ActivityIndicator, StyleSheet } from 'react-native'
+import { Text, Surface, Chip } from 'react-native-paper'
 import { useTimer } from '../../hooks/useTimer'
 import { RingProgressTimer } from '../shared/RingProgressTimer'
 import { SessionControlPanel } from './SessionControlPanel'
@@ -33,6 +34,9 @@ export function ModeratorLiveView({ workshopId }: ModeratorLiveViewProps) {
     if (currentSessionId && sessions.length > 0) {
       const session = sessions.find(s => s.id === currentSessionId)
       setCurrentSession(session || null)
+    } else if (!currentSessionId && sessions.length > 0) {
+      // Wenn keine Session aktiv ist, lade die erste Session
+      setCurrentSession(sessions[0])
     }
   }, [currentSessionId, sessions])
 
@@ -98,10 +102,11 @@ export function ModeratorLiveView({ workshopId }: ModeratorLiveViewProps) {
 
   const handleReset = async () => {
     try {
-      await WorkshopService.resetSession(workshopId)
+      await WorkshopService.resetWorkshop(workshopId)
+      await loadWorkshopData()
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
     } catch (error) {
-      console.error('Failed to reset session:', error)
+      console.error('Failed to reset workshop:', error)
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
     }
   }
@@ -130,55 +135,95 @@ export function ModeratorLiveView({ workshopId }: ModeratorLiveViewProps) {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-gray-50">
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" />
       </View>
     )
   }
 
   if (!workshop) {
     return (
-      <View className="flex-1 items-center justify-center bg-gray-50">
-        <Text className="text-xl text-gray-500">Workshop nicht gefunden</Text>
+      <View style={styles.centerContainer}>
+        <Text variant="titleLarge" style={{ opacity: 0.6 }}>Workshop nicht gefunden</Text>
       </View>
     )
   }
 
   const totalMs = currentSession ? currentSession.planned_duration * 60000 : 0
+  const displayRemainingMs = (status === 'idle' || !currentSessionId) && currentSession ? totalMs : remainingMs
   const workshopEndTime = new Date(workshop.date)
   workshopEndTime.setMinutes(workshopEndTime.getMinutes() + workshop.total_duration)
 
+  const statusIcon = status === 'running' ? '🟢' : status === 'paused' ? '🟡' : '⚪'
+  const statusText = status === 'running' ? 'Läuft' : status === 'paused' ? 'Pausiert' : 'Bereit'
+
   return (
-    <ScrollView className="flex-1 bg-gray-50">
-      <View className="p-6">
-        {/* Workshop-Header */}
-        <View className="mb-6">
-          <Text className="text-3xl font-bold text-gray-900 mb-2">
+    <View style={{ flex: 1 }}>
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 220 }}>
+        <View style={styles.content}>
+        <Surface style={styles.header} elevation={0}>
+          <Text variant="displaySmall" style={styles.title}>
             {workshop.title}
           </Text>
-          <Text className="text-sm text-gray-500">
-            Status: {status === 'running' ? '🟢 Läuft' : status === 'paused' ? '🟡 Pausiert' : '⚪ Bereit'}
-          </Text>
-        </View>
+          <Chip icon={() => <Text>{statusIcon}</Text>} style={styles.statusChip}>
+            {statusText}
+          </Chip>
+        </Surface>
 
-        {/* Ring-Timer */}
-        <View className="items-center mb-8">
+        <View style={styles.timerContainer}>
           <RingProgressTimer
-            remainingMs={remainingMs}
+            remainingMs={displayRemainingMs}
             totalMs={totalMs}
             size={280}
             strokeWidth={20}
           />
         </View>
 
-        {/* Ready-Progress (Phase 7) */}
         {currentSession && (
-          <View className="mb-6">
+          <View style={styles.section}>
             <ReadyProgress sessionId={currentSession.id} workshopId={workshopId} />
           </View>
         )}
 
-        {/* Control Panel */}
+        <View style={styles.section}>
+          <BeamerControl workshopId={workshopId} />
+        </View>
+
+        <View style={styles.section}>
+          <QRCodeModal workshopId={workshopId} />
+        </View>
+
+        <View style={styles.section}>
+          <Text variant="titleLarge" style={styles.sectionTitle}>
+            Kommende Sessions
+          </Text>
+          {sessions
+            .filter(s => s.order_index > (currentSession?.order_index || -1))
+            .slice(0, 3)
+            .map(session => (
+              <Surface
+                key={session.id}
+                style={styles.sessionCard}
+                elevation={1}
+              >
+                <View style={styles.sessionCardContent}>
+                  <View style={{ flex: 1 }}>
+                    <Text variant="titleMedium">{session.title}</Text>
+                    <Text variant="bodyMedium" style={{ opacity: 0.6, textTransform: 'capitalize' }}>
+                      {session.type}
+                    </Text>
+                  </View>
+                  <Text variant="bodyMedium" style={{ fontWeight: '500' }}>
+                    {session.planned_duration} Min{session.is_buffer && ' 🔵'}
+                  </Text>
+                </View>
+              </Surface>
+            ))}
+        </View>
+        </View>
+      </ScrollView>
+
+      <View style={styles.fixedControls}>
         <SessionControlPanel
           currentSession={currentSession}
           allSessions={sessions}
@@ -192,40 +237,67 @@ export function ModeratorLiveView({ workshopId }: ModeratorLiveViewProps) {
           onPushMaterial={handlePushMaterial}
           onStartInteraction={handleStartInteraction}
         />
-
-        {/* Beamer-Steuerung */}
-        <BeamerControl workshopId={workshopId} />
-
-        {/* QR-Code für Teilnehmer */}
-        <View className="mt-6">
-          <QRCodeModal workshopId={workshopId} />
-        </View>
-
-        {/* Session-Übersicht */}
-        <View className="mt-6">
-          <Text className="text-lg font-bold text-gray-900 mb-3">
-            Kommende Sessions
-          </Text>
-          {sessions
-            .filter(s => s.order_index > (currentSession?.order_index || -1))
-            .slice(0, 3)
-            .map(session => (
-              <View
-                key={session.id}
-                className="p-4 bg-white rounded-lg mb-2 flex-row justify-between items-center"
-              >
-                <View className="flex-1">
-                  <Text className="font-semibold text-gray-900">{session.title}</Text>
-                  <Text className="text-sm text-gray-500 capitalize">{session.type}</Text>
-                </View>
-                <Text className="text-sm font-medium text-gray-700">
-                  {session.planned_duration} Min
-                  {session.is_buffer && ' 🔵'}
-                </Text>
-              </View>
-            ))}
-        </View>
       </View>
-    </ScrollView>
+    </View>
   )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  centerContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  content: {
+    padding: 24,
+  },
+  header: {
+    marginBottom: 24,
+    backgroundColor: 'transparent',
+  },
+  title: {
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  statusChip: {
+    alignSelf: 'flex-start',
+  },
+  timerContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  section: {
+    marginTop: 24,
+  },
+  sectionTitle: {
+    marginBottom: 12,
+    fontWeight: 'bold',
+  },
+  sessionCard: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  sessionCardContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  fixedControls: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+})

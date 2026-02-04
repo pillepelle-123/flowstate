@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { View, Text, TouchableOpacity } from 'react-native'
+import { View } from 'react-native'
+import { Button, Text } from 'react-native-paper'
 import { MotiView } from 'moti'
 import { Database } from '../../types/database'
 import { BufferManager, BufferAdjustment } from '../../utils/buffer'
@@ -59,10 +60,6 @@ export function SessionControlPanel({
     }
   }
 
-  const handlePause = () => {
-    onPause()
-  }
-
   const handleNextSession = () => {
     const confirmed = window.confirm('Möchtest du zur nächsten Session wechseln?')
     if (confirmed) {
@@ -70,10 +67,19 @@ export function SessionControlPanel({
     }
   }
 
+  const handleReset = () => {
+    const confirmed = window.confirm('Workshop komplett zurücksetzen?\n\nAlle Sessions werden zurückgesetzt und der Workshop startet von vorne. Teilnehmer und Materialien bleiben erhalten.')
+    if (confirmed) {
+      onReset()
+    }
+  }
+
   if (!currentSession) {
     return (
-      <View className="p-6 bg-gray-100 rounded-2xl">
-        <Text className="text-center text-gray-500">Keine aktive Session</Text>
+      <View style={{ padding: 24, backgroundColor: '#f3f4f6', borderRadius: 16 }}>
+        <Text variant="bodyLarge" style={{ textAlign: 'center', opacity: 0.6 }}>
+          Keine aktive Session
+        </Text>
       </View>
     )
   }
@@ -83,82 +89,99 @@ export function SessionControlPanel({
       from={{ opacity: 0, translateY: 20 }}
       animate={{ opacity: 1, translateY: 0 }}
       transition={{ type: 'timing', duration: 300 }}
-      className="p-6 bg-white rounded-2xl shadow-lg"
+      style={{ padding: 20, backgroundColor: '#fff', borderRadius: 16, elevation: 2 }}
     >
-      <Text className="text-2xl font-bold text-gray-900 mb-2">
+      <Text variant="headlineMedium" style={{ marginBottom: 4 }}>
         {currentSession.title}
       </Text>
-      <Text className="text-sm text-gray-500 mb-6 capitalize">
+      <Text variant="bodyMedium" style={{ opacity: 0.6, marginBottom: 20, textTransform: 'capitalize' }}>
         {currentSession.type}
       </Text>
 
-      <View className="flex-row items-center mb-6 p-3 bg-blue-50 rounded-lg">
-        <Text className="text-lg font-semibold text-blue-900">
-          Teilnehmer: {participantCount}
-          {maxParticipants && `/${maxParticipants}`}
+      <View style={{ padding: 12, backgroundColor: '#eff6ff', borderRadius: 12, marginBottom: 20 }}>
+        <Text variant="titleMedium" style={{ color: '#1e40af' }}>
+          Teilnehmer: {participantCount}{maxParticipants ? `/${maxParticipants}` : ''}
         </Text>
       </View>
 
-      <View className="flex-row gap-3 mb-4">
-        <TouchableOpacity
-          onPress={handleExtendTime}
-          disabled={isExtending}
-          className="flex-1 bg-green-500 py-4 rounded-xl items-center active:bg-green-600"
-        >
-          <Text className="text-white font-bold text-lg">+5 Min</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={handlePause}
-          className={`flex-1 py-4 rounded-xl items-center ${
-            status === 'paused' ? 'bg-green-500 active:bg-green-600' : 'bg-yellow-500 active:bg-yellow-600'
-          }`}
-        >
-          <Text className="text-white font-bold text-lg">
-            {status === 'paused' ? 'Fortsetzen' : 'Pause'}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={handleNextSession}
-          className="flex-1 bg-blue-500 py-4 rounded-xl items-center active:bg-blue-600"
-        >
-          <Text className="text-white font-bold text-lg">Weiter</Text>
-        </TouchableOpacity>
-      </View>
-
-      {status === 'paused' && (
-        <View className="mb-4">
-          <TouchableOpacity
-            onPress={onReset}
-            className="w-full bg-red-500 py-4 rounded-xl items-center active:bg-red-600"
+      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+        {status === 'idle' ? (
+          <Button
+            mode="contained"
+            onPress={handleNextSession}
+            style={{ flex: 1, borderRadius: 12 }}
+            buttonColor="#10b981"
+            icon="play"
           >
-            <Text className="text-white font-bold text-lg">Reset</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+            Start
+          </Button>
+        ) : (
+          <>
+            <Button
+              mode="contained"
+              onPress={handleExtendTime}
+              disabled={isExtending}
+              style={{ flex: 1, borderRadius: 12 }}
+              buttonColor="#10b981"
+            >
+              +5 Min
+            </Button>
 
-      <View className="flex-row gap-3">
-        <TouchableOpacity
-          onPress={onPushMaterial}
-          className="flex-1 bg-purple-500 py-3 rounded-xl items-center active:bg-purple-600"
-        >
-          <Text className="text-white font-semibold">Material pushen</Text>
-        </TouchableOpacity>
+            <Button
+              mode="contained"
+              onPress={onPause}
+              disabled={status === 'idle'}
+              style={{ flex: 1, borderRadius: 12 }}
+              buttonColor={status === 'paused' ? '#10b981' : '#f59e0b'}
+            >
+              {status === 'paused' ? 'Fortsetzen' : 'Pause'}
+            </Button>
 
-        <TouchableOpacity
-          onPress={onStartInteraction}
-          className="flex-1 bg-indigo-500 py-3 rounded-xl items-center active:bg-indigo-600"
-        >
-          <Text className="text-white font-semibold">Interaktion</Text>
-        </TouchableOpacity>
+            <Button
+              mode="contained"
+              onPress={handleNextSession}
+              style={{ flex: 1, borderRadius: 12 }}
+            >
+              Weiter
+            </Button>
+          </>
+        )}
       </View>
 
-      {currentSession.description && (
-        <View className="mt-4 p-3 bg-gray-50 rounded-lg">
-          <Text className="text-sm text-gray-700">{currentSession.description}</Text>
+      {status !== 'idle' ? (
+        <Button
+          mode="contained"
+          onPress={handleReset}
+          style={{ marginBottom: 12, borderRadius: 12 }}
+          buttonColor="#ef4444"
+        >
+          Reset
+        </Button>
+      ) : null}
+
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <Button
+          mode="contained-tonal"
+          onPress={onPushMaterial}
+          style={{ flex: 1, borderRadius: 12 }}
+        >
+          Material
+        </Button>
+
+        <Button
+          mode="contained-tonal"
+          onPress={onStartInteraction}
+          style={{ flex: 1, borderRadius: 12 }}
+        >
+          Interaktion
+        </Button>
+      </View>
+
+      {currentSession.description ? (
+        <View style={{ marginTop: 16, padding: 12, backgroundColor: '#f9fafb', borderRadius: 12 }}>
+          <Text variant="bodyMedium">{currentSession.description}</Text>
         </View>
-      )}
+      ) : null}
     </MotiView>
   )
 }

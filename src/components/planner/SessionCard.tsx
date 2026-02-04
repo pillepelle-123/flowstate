@@ -1,5 +1,6 @@
 import React from 'react'
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
+import { View, StyleSheet } from 'react-native'
+import { Text, Card, Button, Chip, useTheme } from 'react-native-paper'
 import { Database } from '../../types/database'
 
 type Session = Database['public']['Tables']['sessions']['Row']
@@ -20,60 +21,63 @@ const TYPE_ICONS: Record<SessionType, string> = {
   orga: '📋',
 }
 
-const TYPE_COLORS: Record<SessionType, string> = {
-  input: '#3b82f6',
-  interaction: '#8b5cf6',
-  individual: '#10b981',
-  group: '#f59e0b',
-  break: '#6b7280',
-  orga: '#ef4444',
-}
-
 export function SessionCard({ session, onEdit, onDelete }: SessionCardProps) {
+  const theme = useTheme()
+
   return (
-    <View style={styles.card}>
-      <View style={styles.header}>
-        <View style={styles.typeContainer}>
-          <Text style={styles.icon}>{TYPE_ICONS[session.type]}</Text>
-          <View style={[styles.typeBadge, { backgroundColor: TYPE_COLORS[session.type] }]}>
-            <Text style={styles.typeText}>{session.type}</Text>
+    <Card style={styles.card}>
+      <Card.Content>
+        <View style={styles.header}>
+          <View style={styles.typeContainer}>
+            <Text variant="titleLarge">{TYPE_ICONS[session.type]}</Text>
+            <Chip compact>{session.type}</Chip>
+            {session.is_buffer && (
+              <Chip compact icon="buffer" style={{ backgroundColor: theme.colors.tertiaryContainer }}>
+                Buffer
+              </Chip>
+            )}
           </View>
-          {session.is_buffer && <Text style={styles.bufferBadge}>🔵 Buffer</Text>}
+          <Text variant="titleMedium">{session.planned_duration} min</Text>
         </View>
-        <Text style={styles.duration}>{session.planned_duration} Min</Text>
-      </View>
 
-      <Text style={styles.title}>{session.title}</Text>
-      
-      {session.description && (
-        <Text style={styles.description} numberOfLines={2}>{session.description}</Text>
-      )}
+        <Text variant="titleLarge" style={styles.title}>{session.title}</Text>
+        
+        {session.description && (
+          <Text variant="bodyMedium" numberOfLines={2} style={styles.description}>
+            {session.description}
+          </Text>
+        )}
+      </Card.Content>
 
-      <View style={styles.actions}>
-        <TouchableOpacity style={styles.actionButton} onPress={() => onEdit(session)}>
-          <Text style={styles.actionText}>✏️ Bearbeiten</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={() => onDelete(session.id)}>
-          <Text style={[styles.actionText, styles.deleteText]}>🗑️ Löschen</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+      <Card.Actions>
+        <Button icon="pencil" onPress={() => onEdit(session)}>Edit</Button>
+        <Button icon="delete" textColor={theme.colors.error} onPress={() => onDelete(session.id)}>
+          Delete
+        </Button>
+      </Card.Actions>
+    </Card>
   )
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: '#ffffff', borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#e5e7eb' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  typeContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  icon: { fontSize: 20 },
-  typeBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  typeText: { fontSize: 12, fontWeight: '600', color: '#ffffff', textTransform: 'capitalize' },
-  bufferBadge: { fontSize: 12, color: '#3b82f6' },
-  duration: { fontSize: 16, fontWeight: '700', color: '#111827' },
-  title: { fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 8 },
-  description: { fontSize: 14, color: '#6b7280', marginBottom: 12 },
-  actions: { flexDirection: 'row', gap: 12, borderTopWidth: 1, borderTopColor: '#f3f4f6', paddingTop: 12 },
-  actionButton: { flex: 1, padding: 8, alignItems: 'center' },
-  actionText: { fontSize: 14, fontWeight: '600', color: '#3b82f6' },
-  deleteText: { color: '#ef4444' },
+  card: {
+    marginBottom: 12,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  typeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  title: {
+    marginBottom: 8,
+  },
+  description: {
+    opacity: 0.7,
+  },
 })

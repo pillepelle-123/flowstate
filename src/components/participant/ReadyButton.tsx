@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { View, Text, TouchableOpacity } from 'react-native'
+import { View } from 'react-native'
+import { Button, Text } from 'react-native-paper'
 import { ParticipantService } from '../../services/participant'
 
 interface ReadyButtonProps {
@@ -32,16 +33,17 @@ export function ReadyButton({ sessionId, participantId, onReady }: ReadyButtonPr
   }
 
   return (
-    <TouchableOpacity
+    <Button
+      mode="contained"
       onPress={handlePress}
       disabled={isReady || loading}
-      className={`py-6 px-8 rounded-xl ${
-        isReady ? 'bg-green-500' : 'bg-blue-500'
-      }`}
+      loading={loading}
+      buttonColor={isReady ? '#10b981' : undefined}
+      style={{ borderRadius: 16, paddingVertical: 8 }}
+      contentStyle={{ paddingVertical: 12 }}
+      labelStyle={{ fontSize: 20, fontWeight: 'bold' }}
     >
-      <Text className="text-white font-bold text-center text-2xl">
-        {isReady ? '✓ Fertig!' : loading ? 'Sende...' : '✋ Ich bin fertig'}
-      </Text>
-    </TouchableOpacity>
+      {isReady ? '✓ Fertig!' : '✋ Ich bin fertig'}
+    </Button>
   )
 }

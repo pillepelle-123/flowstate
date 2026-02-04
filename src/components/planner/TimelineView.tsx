@@ -1,5 +1,6 @@
 import React from 'react'
-import { View, Text, StyleSheet, ScrollView } from 'react-native'
+import { View, StyleSheet, ScrollView } from 'react-native'
+import { Text, Surface, useTheme } from 'react-native-paper'
 import { Database } from '../../types/database'
 
 type Session = Database['public']['Tables']['sessions']['Row']
@@ -10,6 +11,7 @@ interface TimelineViewProps {
 }
 
 export function TimelineView({ sessions, totalDuration }: TimelineViewProps) {
+  const theme = useTheme()
   let cumulativeTime = 0
 
   return (
@@ -22,11 +24,17 @@ export function TimelineView({ sessions, totalDuration }: TimelineViewProps) {
 
           return (
             <View key={session.id} style={styles.sessionBlock}>
-              <View style={[styles.bar, { width: `${widthPercent}%` }]}>
-                <Text style={styles.barText}>{session.title}</Text>
-                <Text style={styles.barDuration}>{session.planned_duration}m</Text>
-              </View>
-              <Text style={styles.timeLabel}>
+              <Surface
+                style={[
+                  styles.bar,
+                  { width: `${widthPercent}%`, backgroundColor: theme.colors.primary }
+                ]}
+                elevation={1}
+              >
+                <Text variant="bodyMedium" style={styles.barText}>{session.title}</Text>
+                <Text variant="bodySmall" style={styles.barDuration}>{session.planned_duration}m</Text>
+              </Surface>
+              <Text variant="bodySmall" style={styles.timeLabel}>
                 {Math.floor(startTime / 60)}:{String(startTime % 60).padStart(2, '0')}
               </Text>
             </View>
@@ -49,7 +57,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   bar: {
-    backgroundColor: '#3b82f6',
     padding: 12,
     borderRadius: 8,
     minWidth: 100,
@@ -57,16 +64,13 @@ const styles = StyleSheet.create({
   barText: {
     color: '#ffffff',
     fontWeight: '600',
-    fontSize: 14,
   },
   barDuration: {
     color: '#ffffff',
-    fontSize: 12,
     marginTop: 4,
   },
   timeLabel: {
-    fontSize: 12,
-    color: '#6b7280',
     marginTop: 4,
+    opacity: 0.7,
   },
 })

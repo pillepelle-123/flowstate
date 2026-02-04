@@ -13,6 +13,8 @@ export type WorkshopBufferStrategy = 'fixed' | 'distributed' | 'end'
 export type SessionType = 'input' | 'interaction' | 'individual' | 'group' | 'break' | 'orga'
 export type WorkshopStatus = 'planned' | 'running' | 'paused' | 'completed'
 export type InteractionType = 'vote_2d' | 'sticky_note' | 'ready_signal' | 'help_request'
+export type WorkshopUserRole = 'owner' | 'collaborator'
+export type InvitationStatus = 'pending' | 'accepted' | 'declined'
 
 export interface Database {
   public: {
@@ -26,6 +28,11 @@ export interface Database {
           total_duration: number
           buffer_strategy: WorkshopBufferStrategy
           created_by: string | null
+          is_archived: boolean
+          archived_at: string | null
+          is_template: boolean
+          is_completed: boolean
+          completed_at: string | null
           created_at: string
           updated_at: string
         }
@@ -37,6 +44,11 @@ export interface Database {
           total_duration: number
           buffer_strategy?: WorkshopBufferStrategy
           created_by?: string | null
+          is_archived?: boolean
+          archived_at?: string | null
+          is_template?: boolean
+          is_completed?: boolean
+          completed_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -48,6 +60,11 @@ export interface Database {
           total_duration?: number
           buffer_strategy?: WorkshopBufferStrategy
           created_by?: string | null
+          is_archived?: boolean
+          archived_at?: string | null
+          is_template?: boolean
+          is_completed?: boolean
+          completed_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -225,6 +242,61 @@ export interface Database {
           instructions?: string | null
           created_at?: string
           updated_at?: string
+        }
+      }
+      workshop_users: {
+        Row: {
+          id: string
+          workshop_id: string
+          user_id: string
+          role: WorkshopUserRole
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          workshop_id: string
+          user_id: string
+          role: WorkshopUserRole
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          workshop_id?: string
+          user_id?: string
+          role?: WorkshopUserRole
+          created_at?: string
+        }
+      }
+      workshop_invitations: {
+        Row: {
+          id: string
+          workshop_id: string
+          invited_by: string
+          invited_email: string
+          token: string
+          status: InvitationStatus
+          created_at: string
+          expires_at: string
+        }
+        Insert: {
+          id?: string
+          workshop_id: string
+          invited_by: string
+          invited_email: string
+          token?: string
+          status?: InvitationStatus
+          created_at?: string
+          expires_at?: string
+        }
+        Update: {
+          id?: string
+          workshop_id?: string
+          invited_by?: string
+          invited_email?: string
+          token?: string
+          status?: InvitationStatus
+          created_at?: string
+          expires_at?: string
         }
       }
     }

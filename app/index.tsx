@@ -1,34 +1,45 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
+import { View, StyleSheet } from 'react-native'
 import { useRouter } from 'expo-router'
+import { Text, Button, Surface } from 'react-native-paper'
+import { useEffect } from 'react'
+import { useAuthStore } from '../src/stores/authStore'
 
 export default function Index() {
   const router = useRouter()
+  const { user, initialized } = useAuthStore()
+
+  useEffect(() => {
+    if (initialized && user) {
+      router.replace('/dashboard')
+    }
+  }, [user, initialized])
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>FlowState</Text>
-      <Text style={styles.subtitle}>Workshop-Betriebssystem</Text>
+      <Surface style={styles.header} elevation={0}>
+        <Text variant="displayMedium" style={styles.title}>FlowState</Text>
+        <Text variant="bodyLarge" style={styles.subtitle}>Workshop Operating System</Text>
+      </Surface>
       
-      <TouchableOpacity 
-        style={styles.button} 
-        onPress={() => router.push('/moderator')}
-      >
-        <Text style={styles.buttonText}>Moderator</Text>
-      </TouchableOpacity>
+      <View style={styles.buttonContainer}>
+        <Button 
+          mode="contained" 
+          onPress={() => router.push('/auth/login')}
+          style={styles.button}
+          contentStyle={styles.buttonContent}
+        >
+          Sign In
+        </Button>
 
-      <TouchableOpacity 
-        style={[styles.button, { marginTop: 12 }]} 
-        onPress={() => router.push('/participant')}
-      >
-        <Text style={styles.buttonText}>Teilnehmer</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity 
-        style={[styles.button, { marginTop: 12, backgroundColor: '#6b7280' }]} 
-        onPress={() => router.push('/planner')}
-      >
-        <Text style={styles.buttonText}>Workshop Planen</Text>
-      </TouchableOpacity>
+        <Button 
+          mode="outlined" 
+          onPress={() => router.push('/auth/register')}
+          style={styles.button}
+          contentStyle={styles.buttonContent}
+        >
+          Create Account
+        </Button>
+      </View>
     </View>
   )
 }
@@ -38,28 +49,29 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    padding: 24,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 48,
+    backgroundColor: 'transparent',
   },
   title: {
-    fontSize: 32,
     fontWeight: 'bold',
-    color: '#111',
   },
   subtitle: {
-    fontSize: 16,
-    color: '#666',
     marginTop: 8,
-    marginBottom: 40,
+    opacity: 0.7,
+  },
+  buttonContainer: {
+    width: '100%',
+    maxWidth: 400,
+    gap: 12,
   },
   button: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 12,
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+  buttonContent: {
+    paddingVertical: 8,
   },
 })

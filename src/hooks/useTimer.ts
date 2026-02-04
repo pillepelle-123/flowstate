@@ -26,7 +26,7 @@ export function useTimer(workshopId: string | null) {
         // Map backend status to local store statuses explicitly
         if (state.status === 'running') store.setStatus('running')
         else if (state.status === 'paused') store.setStatus('paused')
-        else store.setStatus('idle')
+        else store.setStatus('idle') // 'planned' or any other status maps to 'idle'
 
         store.setSession(state.current_session_id || '')
         store.updateRemaining()
@@ -46,10 +46,16 @@ export function useTimer(workshopId: string | null) {
 
         if (state.status === 'running') store.setStatus('running')
         else if (state.status === 'paused') store.setStatus('paused')
-        else store.setStatus('idle')
+        else store.setStatus('idle') // 'planned' or any other status maps to 'idle'
 
         store.setSession(state.current_session_id || '')
         store.updateRemaining()
+      } else {
+        // No active session - reset to idle
+        if (state.status === 'running') store.setStatus('running')
+        else if (state.status === 'paused') store.setStatus('paused')
+        else store.setStatus('idle')
+        store.setSession('')
       }
     })
 

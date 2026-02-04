@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native'
+import { View, StyleSheet, ScrollView, Alert } from 'react-native'
+import { Text, Card, ActivityIndicator, useTheme } from 'react-native-paper'
 import { MethodTemplateService } from '../../services/methodTemplates'
 import { Database } from '../../types/database'
 
@@ -10,6 +11,7 @@ interface MethodLibraryProps {
 }
 
 export function MethodLibrary({ onSelectTemplate }: MethodLibraryProps) {
+  const theme = useTheme()
   const [templates, setTemplates] = useState<MethodTemplate[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -39,26 +41,31 @@ export function MethodLibrary({ onSelectTemplate }: MethodLibraryProps) {
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.loadingText}>Lade Methoden...</Text>
+        <ActivityIndicator size="large" />
       </View>
     )
   }
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.header}>Methoden-Bibliothek</Text>
+      <Text variant="headlineSmall" style={styles.header}>Method Library</Text>
       {Object.entries(groupedTemplates).map(([category, items]) => (
         <View key={category} style={styles.category}>
-          <Text style={styles.categoryTitle}>{category}</Text>
+          <Text variant="titleMedium" style={styles.categoryTitle}>{category}</Text>
           {items.map((template) => (
-            <TouchableOpacity
+            <Card
               key={template.id}
-              style={styles.templateCard}
+              style={[styles.card, {
+                backgroundColor: theme.colors.surface,}]}
               onPress={() => onSelectTemplate(template)}
             >
-              <Text style={styles.templateName}>{template.name}</Text>
-              <Text style={styles.templateDuration}>{template.default_duration} Min</Text>
-            </TouchableOpacity>
+              <Card.Content style={styles.cardContent}>
+                <Text variant="bodyLarge" style={styles.templateName}>{template.name}</Text>
+                <Text variant="bodyMedium" style={{ color: theme.colors.primary }}>
+                  {template.default_duration} min
+                </Text>
+              </Card.Content>
+            </Card>
           ))}
         </View>
       ))}
@@ -69,49 +76,26 @@ export function MethodLibrary({ onSelectTemplate }: MethodLibraryProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
     padding: 16,
   },
   header: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
     marginBottom: 16,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#6b7280',
-    textAlign: 'center',
-    marginTop: 24,
   },
   category: {
     marginBottom: 24,
   },
   categoryTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
     marginBottom: 8,
   },
-  templateCard: {
-    backgroundColor: '#ffffff',
-    padding: 12,
-    borderRadius: 8,
+  card: {
     marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+  },
+  cardContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   templateName: {
-    fontSize: 14,
-    color: '#111827',
     flex: 1,
-  },
-  templateDuration: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#3b82f6',
   },
 })
