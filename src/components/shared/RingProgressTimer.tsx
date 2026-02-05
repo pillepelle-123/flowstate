@@ -12,13 +12,15 @@ interface RingProgressTimerProps {
   totalMs: number
   size?: number
   strokeWidth?: number
+  status?: 'idle' | 'running' | 'paused'
 }
 
 export function RingProgressTimer({ 
   remainingMs, 
   totalMs, 
   size = 280, 
-  strokeWidth = 20 
+  strokeWidth = 20,
+  status = 'idle'
 }: RingProgressTimerProps) {
   const progress = useSharedValue(1)
   const radius = (size - strokeWidth) / 2
@@ -28,8 +30,9 @@ export function RingProgressTimer({
   const seconds = Math.floor((remainingMs % 60000) / 1000)
   const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
 
-  // Farblogik: Grün → Gelb (5min) → Rot (1min)
+  // Farblogik: Status-basiert (pausiert = orange) oder Zeit-basiert
   const getColor = () => {
+    if (status === 'paused') return '#f59e0b' // Orange (wie Pause-Button)
     if (remainingMs <= 60000) return '#ef4444' // Rot
     if (remainingMs <= 300000) return '#eab308' // Gelb
     return '#22c55e' // Grün
@@ -52,14 +55,14 @@ export function RingProgressTimer({
   }))
 
   return (
-    <View className="items-center justify-center">
+    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
         {/* Background Circle */}
         <Circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke="#e5e7eb"
+          stroke="transparent"
           strokeWidth={strokeWidth}
           fill="none"
         />
@@ -83,7 +86,7 @@ export function RingProgressTimer({
         animate={{ scale: remainingMs <= 60000 ? [1, 1.05, 1] : 1 }}
         transition={{ type: 'timing', duration: 1000, loop: remainingMs <= 60000 }}
       >
-        <Text className="text-6xl font-bold" style={{ color: getColor() }}>
+        <Text style={{ fontSize: 60, fontWeight: 'bold', color: getColor() }}>
           {timeString}
         </Text>
       </MotiView>

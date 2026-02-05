@@ -41,7 +41,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       authService.onAuthStateChange((user) => {
         set({ user })
       })
-    } catch (error) {
+    } catch (error: any) {
+      // Ignore AbortController errors
+      if (error?.message?.includes('aborted')) {
+        return
+      }
       console.error('Auth initialization error:', error)
       set({ user: null, initialized: true, loading: false })
     }

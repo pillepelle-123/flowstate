@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { View, ScrollView, Linking, Alert, StyleSheet } from 'react-native'
 import { Text, Surface, Button, Card, Chip } from 'react-native-paper'
 import { ParticipantService } from '../../services/participant'
 import { NotificationService } from '../../services/notifications'
 import { OfflineService } from '../../services/offline'
 import { supabase } from '../../services/supabase'
-import { useTimerStore } from '../../stores/timerStore'
+import { useTimer } from '../../hooks/useTimer'
 import { InteractionContainer } from './InteractionContainer'
 import { Database } from '../../types/database'
 
@@ -23,7 +23,9 @@ export function ParticipantDashboard({ workshopId, participant }: ParticipantDas
   const [workshop, setWorkshop] = useState<Workshop | null>(null)
   const [currentSession, setCurrentSession] = useState<Session | null>(null)
   const [activeInteraction, setActiveInteraction] = useState<InteractionType>(null)
-  const { remainingMs, status } = useTimerStore()
+  const [showMaterialNotification, setShowMaterialNotification] = useState(false)
+  const [showInteractionNotification, setShowInteractionNotification] = useState(false)
+  const { remainingMs, status, currentSessionId } = useTimer(workshopId)
 
   useEffect(() => {
     loadWorkshopData()
@@ -36,6 +38,27 @@ export function ParticipantDashboard({ workshopId, participant }: ParticipantDas
 
     return () => clearInterval(heartbeat)
   }, [workshopId])
+
+  // Load session when currentSessionId changes
+  useEffect(() => {
+    if (currentSessionId) {
+      loadCurrentSession()
+    } else {
+      setCurrentSession(null)
+    }
+  }, [currentSessionId])
+
+  const loadCurrentSession = async () => {
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('*')
+      .eq('id', currentSessionId)
+      .single()
+    
+    if (!error && data) {
+      setCurrentSession(data)
+    }
+  }
 
   const initializeServices = async () => {
     await NotificationService.registerForPushNotifications()
@@ -81,10 +104,20 @@ export function ParticipantDashboard({ workshopId, participant }: ParticipantDas
           table: 'workshop_states',
           filter: `workshop_id=eq.${workshopId}`,
         },
-        async () => {
+        async (payload: any) => {
           const state = await ParticipantService.getCurrentSession(workshopId)
           if (state?.sessions) {
             setCurrentSession(state.sessions as Session)
+          }
+          
+          // Handle material and interaction notifications
+          if (payload.new?.show_material) {
+            setShowMaterialNotification(true)
+            setTimeout(() => setShowMaterialNotification(false), 5000)
+          }
+          if (payload.new?.show_interaction) {
+            setShowInteractionNotification(true)
+            setTimeout(() => setShowInteractionNotification(false), 5000)
           }
         }
       )
@@ -94,6 +127,21 @@ export function ParticipantDashboard({ workshopId, participant }: ParticipantDas
       supabase.removeChannel(channel)
     }
   }
+
+  const getTimerDisplay = useMemo(() => {
+    if (typeof remainingMs !== 'number' || isNaN(remainingMs)) return '00:00'
+    if (remainingMs <= 0) return '00:00'
+    const totalSeconds = Math.floor(remainingMs / 1000)
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+  }, [remainingMs])
+
+  const getStatusText = useMemo(() => {
+    if (status === 'running') return 'Verbleibende Zeit'
+    if (status === 'paused') return 'Pausiert'
+    return 'Bereit'
+  }, [status])
 
   const formatTime = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000)
@@ -129,137 +177,98 @@ export function ParticipantDashboard({ workshopId, participant }: ParticipantDas
   const materials = currentSession?.materials as string[] | null
 
   return (
-    <>
-      <ScrollView style={styles.container}>
-        <View style={styles.content}>
+    <ScrollView style={styles.container}>
+      <View style={styles.content}>
+        {showMaterialNotification && (
+          <Surface style={styles.notificationBanner} elevation={4}>
+            <Text variant="titleMedium" style={styles.notificationText}>
+              📄 Material verfügbar!
+            </Text>
+          </Surface>
+        )}
+        
+        {showInteractionNotification && (
+          <Surface style={styles.notificationBanner} elevation={4}>
+            <Text variant="titleMedium" style={styles.notificationText}>
+              ✋ Interaktion gestartet!
+            </Text>
+          </Surface>
+        )}
+
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text variant="labelMedium" style={styles.label}>Workshop</Text>
+            <Text variant="headlineMedium" style={styles.workshopTitle}>
+              {workshop?.title ? String(workshop.title) : 'Lädt...'}
+            </Text>
+            <Text variant="bodyMedium" style={styles.participantInfo}>
+              {`Teilnehmer: ${String(participant.display_name || participant.anonymous_id)}`}
+            </Text>
+          </Card.Content>
+        </Card>
+
+        {currentSession && (
+          <Surface style={styles.sessionCard} elevation={2}>
+            <Text variant="bodyMedium">Aktuelle Phase</Text>
+            <Text variant="headlineSmall" style={styles.sessionTitle}>
+              {String(currentSession.title || '')}
+            </Text>
+            
+            <View style={styles.timerContainer}>
+              <Surface style={styles.timerSurface} elevation={3}>
+                <Text variant="displaySmall" style={styles.timerText}>{getTimerDisplay}</Text>
+              </Surface>
+              <Text variant="bodyMedium" style={styles.timerLabel}>{getStatusText}</Text>
+            </View>
+          </Surface>
+        )}
+
+        {currentSession && (
           <Card style={styles.card}>
             <Card.Content>
-              <Text variant="labelMedium" style={styles.label}>Workshop</Text>
-              <Text variant="headlineMedium" style={styles.workshopTitle}>
-                {workshop?.title || 'Lädt...'}
-              </Text>
-              <Text variant="bodyMedium" style={styles.participantInfo}>
-                Teilnehmer: {participant.display_name || participant.anonymous_id}
-              </Text>
+              <Text variant="labelLarge" style={styles.sectionLabel}>Interaktionen:</Text>
+              
+              <Button mode="contained" onPress={() => setActiveInteraction('ready')} style={styles.interactionButton} buttonColor="#10b981" icon="hand-back-right">
+                Ich bin fertig
+              </Button>
+
+              <Button mode="contained" onPress={() => setActiveInteraction('matrix')} style={styles.interactionButton} buttonColor="#8b5cf6" icon="chart-scatter-plot">
+                2D-Matrix Voting
+              </Button>
+
+              <Button mode="contained" onPress={() => setActiveInteraction('sticky')} style={styles.interactionButton} buttonColor="#f59e0b" icon="note-edit">
+                Sticky Note erstellen
+              </Button>
             </Card.Content>
           </Card>
+        )}
 
-          {currentSession && (
-            <Surface style={styles.sessionCard} elevation={2}>
-              <Chip icon="clock-outline" style={styles.sessionChip}>Aktuelle Phase</Chip>
-              <Text variant="headlineSmall" style={styles.sessionTitle}>
-                {currentSession.title}
-              </Text>
-              
-              <View style={styles.timerContainer}>
-                <Surface style={styles.timerSurface} elevation={3}>
-                  <Text variant="displaySmall" style={styles.timerText}>
-                    {status === 'running' ? formatTime(remainingMs) : '--:--'}
-                  </Text>
-                </Surface>
-                <Text variant="bodyMedium" style={styles.timerLabel}>
-                  {status === 'running' ? 'Verbleibende Zeit' : 'Timer pausiert'}
-                </Text>
-              </View>
-            </Surface>
-          )}
-
-          {currentSession?.description && (
-            <Card style={styles.card}>
-              <Card.Content>
-                <Text variant="labelLarge" style={styles.sectionLabel}>Deine Aufgabe:</Text>
-                <Text variant="bodyLarge">{currentSession.description}</Text>
-              </Card.Content>
-            </Card>
-          )}
-
-          {currentSession && (
-            <Card style={styles.card}>
-              <Card.Content>
-                <Text variant="labelLarge" style={styles.sectionLabel}>Interaktionen:</Text>
-                
-                <Button
-                  mode="contained"
-                  onPress={() => setActiveInteraction('ready')}
-                  style={styles.interactionButton}
-                  buttonColor="#10b981"
-                  icon="hand-back-right"
-                >
-                  Ich bin fertig
+        {materials && materials.length > 0 && (
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="labelLarge" style={styles.sectionLabel}>Materialien:</Text>
+              {materials.map((url, index) => (
+                <Button key={index} mode="contained-tonal" onPress={() => handleOpenMaterial(url)} style={styles.materialButton} icon="file-document">
+                  {`Material ${index + 1} öffnen`}
                 </Button>
+              ))}
+            </Card.Content>
+          </Card>
+        )}
 
-                <Button
-                  mode="contained"
-                  onPress={() => setActiveInteraction('matrix')}
-                  style={styles.interactionButton}
-                  buttonColor="#8b5cf6"
-                  icon="chart-scatter-plot"
-                >
-                  2D-Matrix Voting
-                </Button>
+        <Button mode="contained" onPress={handleHelpRequest} style={styles.helpButton} buttonColor="#f97316" icon="help-circle" contentStyle={styles.helpButtonContent}>
+          Hilfe anfordern
+        </Button>
 
-                <Button
-                  mode="contained"
-                  onPress={() => setActiveInteraction('sticky')}
-                  style={styles.interactionButton}
-                  buttonColor="#f59e0b"
-                  icon="note-edit"
-                >
-                  Sticky Note erstellen
-                </Button>
-              </Card.Content>
-            </Card>
-          )}
-
-          {materials && materials.length > 0 && (
-            <Card style={styles.card}>
-              <Card.Content>
-                <Text variant="labelLarge" style={styles.sectionLabel}>Materialien:</Text>
-                {materials.map((url, index) => (
-                  <Button
-                    key={index}
-                    mode="contained-tonal"
-                    onPress={() => handleOpenMaterial(url)}
-                    style={styles.materialButton}
-                    icon="file-document"
-                  >
-                    Material {index + 1} öffnen
-                  </Button>
-                ))}
-              </Card.Content>
-            </Card>
-          )}
-
-          <Button
-            mode="contained"
-            onPress={handleHelpRequest}
-            style={styles.helpButton}
-            buttonColor="#f97316"
-            icon="help-circle"
-            contentStyle={styles.helpButtonContent}
-          >
-            Hilfe anfordern
-          </Button>
-
-          {!currentSession && (
-            <Surface style={styles.infoCard} elevation={1}>
-              <Text variant="bodyLarge" style={styles.infoText}>
-                Der Workshop hat noch nicht begonnen oder ist beendet.
-              </Text>
-            </Surface>
-          )}
-        </View>
-      </ScrollView>
-
-      {currentSession && (
-        <InteractionContainer
-          sessionId={currentSession.id}
-          participantId={participant.id}
-          interactionType={activeInteraction}
-          onClose={() => setActiveInteraction(null)}
-        />
-      )}
-    </>
+        {!currentSession && (
+          <Surface style={styles.infoCard} elevation={1}>
+            <Text variant="bodyLarge" style={styles.infoText}>
+              Der Workshop hat noch nicht begonnen oder ist beendet.
+            </Text>
+          </Surface>
+        )}
+      </View>
+    </ScrollView>
   )
 }
 
@@ -269,6 +278,17 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
+  },
+  notificationBanner: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: '#10b981',
+  },
+  notificationText: {
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   card: {
     marginBottom: 16,

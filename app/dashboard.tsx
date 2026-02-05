@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { View, StyleSheet } from 'react-native'
-import { Appbar, FAB, SegmentedButtons, Searchbar, Menu, IconButton, Snackbar } from 'react-native-paper'
+import { FAB, SegmentedButtons, Searchbar, Snackbar } from 'react-native-paper'
 import { useRouter, useFocusEffect } from 'expo-router'
 import { useAuthStore } from '../src/stores/authStore'
 import { WorkshopService } from '../src/services/workshop'
@@ -8,13 +8,12 @@ import { WorkshopList } from '../src/components/dashboard/WorkshopList'
 
 export default function DashboardScreen() {
   const router = useRouter()
-  const { user, signOut } = useAuthStore()
+  const { user } = useAuthStore()
   const [workshops, setWorkshops] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('active')
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<'all' | 'owner' | 'collaborator'>('all')
-  const [menuVisible, setMenuVisible] = useState(false)
   const [snackbar, setSnackbar] = useState({ visible: false, message: '' })
 
   useEffect(() => {
@@ -65,36 +64,8 @@ export default function DashboardScreen() {
     }
   }
 
-  const handleSignOut = async () => {
-    await signOut()
-    router.replace('/auth/login')
-  }
-
   return (
     <View style={styles.container}>
-      <Appbar.Header>
-        <Appbar.Content title="Workshops" />
-        <Menu
-          visible={menuVisible}
-          onDismiss={() => setMenuVisible(false)}
-          anchor={
-            <IconButton
-              icon="account-circle"
-              onPress={() => setMenuVisible(true)}
-            />
-          }
-        >
-          <Menu.Item
-            onPress={() => {
-              setMenuVisible(false)
-              handleSignOut()
-            }}
-            title="Sign Out"
-            leadingIcon="logout"
-          />
-        </Menu>
-      </Appbar.Header>
-
       <View style={styles.filters}>
         <Searchbar
           placeholder="Search workshops"

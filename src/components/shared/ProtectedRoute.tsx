@@ -22,9 +22,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     if (!initialized || loading) return
 
     const inAuthGroup = segments[0] === 'auth'
+    const inParticipantRoute = segments[0] === 'join'
 
-    if (!user && !inAuthGroup) {
-      // Redirect to login if not authenticated
+    if (!user && !inAuthGroup && !inParticipantRoute) {
+      // Redirect to login if not authenticated (except for participant routes)
       router.replace('/auth/login')
     } else if (user && inAuthGroup) {
       // Redirect to dashboard if already authenticated

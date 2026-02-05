@@ -517,4 +517,39 @@ export class WorkshopService {
     
     if (error) throw error
   }
+
+  // ============================================
+  // PARTICIPANT NOTIFICATIONS
+  // ============================================
+
+  static async notifyParticipants(workshopId: string, type: 'material' | 'interaction') {
+    const updates: any = {
+      notification_updated_at: new Date().toISOString(),
+    }
+    
+    if (type === 'material') {
+      updates.show_material = true
+    } else if (type === 'interaction') {
+      updates.show_interaction = true
+    }
+
+    const { error } = await supabase
+      .from('workshop_states')
+      .update(updates)
+      .eq('workshop_id', workshopId)
+    
+    if (error) throw error
+
+    // Reset notification after 5 seconds
+    setTimeout(async () => {
+      const resetUpdates: any = {}
+      if (type === 'material') resetUpdates.show_material = false
+      if (type === 'interaction') resetUpdates.show_interaction = false
+      
+      await supabase
+        .from('workshop_states')
+        .update(resetUpdates)
+        .eq('workshop_id', workshopId)
+    }, 5000)
+  }
 }

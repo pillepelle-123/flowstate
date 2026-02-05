@@ -25,9 +25,7 @@ export function InteractionContainer({
         {/* Header */}
         <View className="bg-white p-4 border-b border-gray-200 flex-row justify-between items-center">
           <Text className="text-xl font-bold">
-            {interactionType === 'ready' && 'Bereit melden'}
-            {interactionType === 'matrix' && '2D-Matrix Voting'}
-            {interactionType === 'sticky' && 'Sticky Note'}
+            {interactionType === 'ready' ? 'Bereit melden' : interactionType === 'matrix' ? '2D-Matrix Voting' : 'Sticky Note'}
           </Text>
           <TouchableOpacity onPress={onClose} className="p-2">
             <Text className="text-2xl text-gray-600">×</Text>

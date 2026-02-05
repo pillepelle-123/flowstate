@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { View } from 'react-native'
-import { Button, Text } from 'react-native-paper'
-import { MotiView } from 'moti'
+import { Button, Text, Dialog, Portal } from 'react-native-paper'
 import { Database } from '../../types/database'
 import { BufferManager, BufferAdjustment } from '../../utils/buffer'
 
@@ -17,6 +16,7 @@ interface SessionControlPanelProps {
   onExtendTime: (minutes: number, adjustment: BufferAdjustment) => void
   onPause: () => void
   onReset: () => void
+  onPreviousSession: () => void
   onNextSession: () => void
   onPushMaterial: () => void
   onStartInteraction: () => void
@@ -32,11 +32,35 @@ export function SessionControlPanel({
   onExtendTime,
   onPause,
   onReset,
+  onPreviousSession,
   onNextSession,
   onPushMaterial,
   onStartInteraction,
 }: SessionControlPanelProps) {
   const [isExtending, setIsExtending] = useState(false)
+  const [dialogVisible, setDialogVisible] = useState(false)
+  const [dialogConfig, setDialogConfig] = useState<{
+    title: string
+    content: string
+    onConfirm: () => void
+  } | null>(null)
+
+  const showDialog = (title: string, content: string, onConfirm: () => void) => {
+    setDialogConfig({ title, content, onConfirm })
+    setDialogVisible(true)
+  }
+
+  const hideDialog = () => {
+    setDialogVisible(false)
+    setDialogConfig(null)
+  }
+
+  const handleConfirm = () => {
+    if (dialogConfig?.onConfirm) {
+      dialogConfig.onConfirm()
+    }
+    hideDialog()
+  }
 
   const handleExtendTime = () => {
     if (!currentSession) return
@@ -51,32 +75,43 @@ export function SessionControlPanel({
         workshopEndTime
       )
 
-      const confirmed = window.confirm(`Zeit verlängern\n\n${adjustment.message}\n\nBestätigen?`)
-      if (confirmed) {
-        onExtendTime(5, adjustment)
-      }
+      showDialog(
+        'Zeit verlängern',
+        adjustment.message,
+        () => onExtendTime(5, adjustment)
+      )
     } finally {
       setIsExtending(false)
     }
   }
 
+  const handlePreviousSession = () => {
+    showDialog(
+      'Vorherige Session',
+      'Möchtest du zur vorherigen Session wechseln?',
+      onPreviousSession
+    )
+  }
+
   const handleNextSession = () => {
-    const confirmed = window.confirm('Möchtest du zur nächsten Session wechseln?')
-    if (confirmed) {
-      onNextSession()
-    }
+    showDialog(
+      'Nächste Session',
+      'Möchtest du zur nächsten Session wechseln?',
+      onNextSession
+    )
   }
 
   const handleReset = () => {
-    const confirmed = window.confirm('Workshop komplett zurücksetzen?\n\nAlle Sessions werden zurückgesetzt und der Workshop startet von vorne. Teilnehmer und Materialien bleiben erhalten.')
-    if (confirmed) {
-      onReset()
-    }
+    showDialog(
+      'Workshop zurücksetzen',
+      'Alle Sessions werden zurückgesetzt und der Workshop startet von vorne. Teilnehmer und Materialien bleiben erhalten.',
+      onReset
+    )
   }
 
   if (!currentSession) {
     return (
-      <View style={{ padding: 24, backgroundColor: '#f3f4f6', borderRadius: 16 }}>
+      <View style={{ padding: 16, backgroundColor: '#f3f4f6' }}>
         <Text variant="bodyLarge" style={{ textAlign: 'center', opacity: 0.6 }}>
           Keine aktive Session
         </Text>
@@ -84,104 +119,92 @@ export function SessionControlPanel({
     )
   }
 
+  const currentIndex = allSessions.findIndex(s => s.id === currentSession.id)
+  const hasPrevious = currentIndex > 0
+  const hasNext = currentIndex < allSessions.length - 1
+
   return (
-    <MotiView
-      from={{ opacity: 0, translateY: 20 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      transition={{ type: 'timing', duration: 300 }}
-      style={{ padding: 20, backgroundColor: '#fff', borderRadius: 16, elevation: 2 }}
-    >
-      <Text variant="headlineMedium" style={{ marginBottom: 4 }}>
-        {currentSession.title}
-      </Text>
-      <Text variant="bodyMedium" style={{ opacity: 0.6, marginBottom: 20, textTransform: 'capitalize' }}>
-        {currentSession.type}
-      </Text>
-
-      <View style={{ padding: 12, backgroundColor: '#eff6ff', borderRadius: 12, marginBottom: 20 }}>
-        <Text variant="titleMedium" style={{ color: '#1e40af' }}>
-          Teilnehmer: {participantCount}{maxParticipants ? `/${maxParticipants}` : ''}
-        </Text>
-      </View>
-
-      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-        {status === 'idle' ? (
-          <Button
-            mode="contained"
-            onPress={handleNextSession}
-            style={{ flex: 1, borderRadius: 12 }}
-            buttonColor="#10b981"
-            icon="play"
-          >
-            Start
-          </Button>
-        ) : (
-          <>
-            <Button
-              mode="contained"
-              onPress={handleExtendTime}
-              disabled={isExtending}
-              style={{ flex: 1, borderRadius: 12 }}
-              buttonColor="#10b981"
-            >
-              +5 Min
-            </Button>
-
-            <Button
-              mode="contained"
-              onPress={onPause}
-              disabled={status === 'idle'}
-              style={{ flex: 1, borderRadius: 12 }}
-              buttonColor={status === 'paused' ? '#10b981' : '#f59e0b'}
-            >
-              {status === 'paused' ? 'Fortsetzen' : 'Pause'}
-            </Button>
-
-            <Button
-              mode="contained"
-              onPress={handleNextSession}
-              style={{ flex: 1, borderRadius: 12 }}
-            >
-              Weiter
-            </Button>
-          </>
-        )}
-      </View>
-
-      {status !== 'idle' ? (
+    <View style={{ padding: 12, backgroundColor: '#fff' }}>
+      <View style={{ flexDirection: 'row', gap: 6, marginBottom: 6 }}>
         <Button
           mode="contained"
-          onPress={handleReset}
-          style={{ marginBottom: 12, borderRadius: 12 }}
-          buttonColor="#ef4444"
+          onPress={handlePreviousSession}
+          disabled={!hasPrevious}
+          style={{ flex: 1 }}
+          compact
         >
-          Reset
+          Zurück
         </Button>
-      ) : null}
+        <Button
+          mode="contained"
+          onPress={handleExtendTime}
+          disabled={isExtending}
+          style={{ flex: 1 }}
+          buttonColor="#10b981"
+          compact
+        >
+          +5 Min
+        </Button>
+        <Button
+          mode="contained"
+          onPress={onPause}
+          style={{ flex: 1 }}
+          buttonColor={status === 'paused' ? '#10b981' : '#f59e0b'}
+          compact
+        >
+          {status === 'paused' ? 'Fortsetzen' : 'Pause'}
+        </Button>
+        <Button
+          mode="contained"
+          onPress={handleNextSession}
+          disabled={!hasNext}
+          style={{ flex: 1 }}
+          compact
+        >
+          Weiter
+        </Button>
+      </View>
 
-      <View style={{ flexDirection: 'row', gap: 8 }}>
+      <View style={{ flexDirection: 'row', gap: 6 }}>
         <Button
           mode="contained-tonal"
           onPress={onPushMaterial}
-          style={{ flex: 1, borderRadius: 12 }}
+          style={{ flex: 1 }}
+          compact
         >
           Material
         </Button>
-
         <Button
           mode="contained-tonal"
           onPress={onStartInteraction}
-          style={{ flex: 1, borderRadius: 12 }}
+          style={{ flex: 1 }}
+          compact
         >
           Interaktion
         </Button>
+        <Button
+          mode="contained"
+          onPress={handleReset}
+          buttonColor="#ef4444"
+          style={{ flex: 1 }}
+          compact
+        >
+          Reset
+        </Button>
       </View>
 
-      {currentSession.description ? (
-        <View style={{ marginTop: 16, padding: 12, backgroundColor: '#f9fafb', borderRadius: 12 }}>
-          <Text variant="bodyMedium">{currentSession.description}</Text>
-        </View>
-      ) : null}
-    </MotiView>
+      <Portal>
+        <Dialog visible={dialogVisible} onDismiss={hideDialog}>
+          <Dialog.Title>{dialogConfig?.title}</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium">{dialogConfig?.content}</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={hideDialog}>Abbrechen</Button>
+            <Button onPress={handleConfirm}>Bestätigen</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+    </View>
   )
 }

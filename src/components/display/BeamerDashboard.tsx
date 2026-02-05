@@ -9,6 +9,7 @@ import { StickyNotesView } from './StickyNotesView'
 import { MatrixView } from './MatrixView'
 import { supabase } from '../../services/supabase'
 import { Database } from '../../types/database'
+import { RealtimeService } from '../../services/realtime'
 
 type Workshop = Database['public']['Tables']['workshops']['Row']
 type Session = Database['public']['Tables']['sessions']['Row']
@@ -24,6 +25,8 @@ export function BeamerDashboard({ workshopId }: BeamerDashboardProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [displayMode, setDisplayMode] = useState<DisplayMode>('timer')
+  const [showMaterial, setShowMaterial] = useState(false)
+  const [showInteraction, setShowInteraction] = useState(false)
 
   const { remainingMs, status, currentSessionId } = useTimer(workshopId)
 
@@ -31,7 +34,31 @@ export function BeamerDashboard({ workshopId }: BeamerDashboardProps) {
     loadWorkshopData()
   }, [workshopId])
 
-  // Subscribe to display mode changes
+  useEffect(() => {
+    const subscription = RealtimeService.subscribeToWorkshopState(
+      workshopId,
+      (state) => {
+        console.log('Display received state update:', state)
+        if (state.show_material) {
+          console.log('Showing material notification')
+          setShowMaterial(true)
+          setTimeout(() => setShowMaterial(false), 5000)
+        }
+        if (state.show_interaction) {
+          console.log('Showing interaction notification')
+          setShowInteraction(true)
+          setTimeout(() => setShowInteraction(false), 5000)
+        }
+      }
+    )
+
+    return () => {
+      if (subscription && typeof subscription.unsubscribe === 'function') {
+        subscription.unsubscribe()
+      }
+    }
+  }, [workshopId])
+
   useEffect(() => {
     const channel = supabase.channel(`workshop:${workshopId}`)
     
@@ -114,13 +141,25 @@ export function BeamerDashboard({ workshopId }: BeamerDashboardProps) {
   const nextSession = currentIndex >= 0 ? sessions[currentIndex + 1] : null
 
   return (
-    <FocusModeLayout
-      workshopTitle={workshop.title}
-      currentSession={currentSession || null}
-      remainingMs={remainingMs}
-      totalMs={totalMs}
-      nextStep={nextSession?.title}
-    />
+    <View style={{ flex: 1 }}>
+      <FocusModeLayout
+        workshopTitle={workshop.title}
+        currentSession={currentSession || null}
+        remainingMs={remainingMs}
+        totalMs={totalMs}
+        nextStep={nextSession?.title}
+      />
+      {showMaterial && (
+        <View style={styles.notification}>
+          <Text style={styles.notificationText}>📄 Material verfügbar</Text>
+        </View>
+      )}
+      {showInteraction && (
+        <View style={styles.notification}>
+          <Text style={styles.notificationText}>💬 Interaktion gestartet</Text>
+        </View>
+      )}
+    </View>
   )
 }
 
@@ -152,6 +191,27 @@ const styles = StyleSheet.create({
   idleSubtitle: {
     fontSize: 40,
     color: '#94a3b8',
+    textAlign: 'center',
+  },
+  notification: {
+    position: 'absolute',
+    top: 40,
+    left: 40,
+    right: 40,
+    backgroundColor: '#10b981',
+    padding: 24,
+    borderRadius: 16,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    zIndex: 1000,
+  },
+  notificationText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#fff',
     textAlign: 'center',
   },
 })

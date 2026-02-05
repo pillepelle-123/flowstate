@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { View, ScrollView, ActivityIndicator, StyleSheet } from 'react-native'
-import { Text, Surface, Chip } from 'react-native-paper'
+import { Text, Chip, Surface } from 'react-native-paper'
 import { useTimer } from '../../hooks/useTimer'
 import { RingProgressTimer } from '../shared/RingProgressTimer'
 import { SessionControlPanel } from './SessionControlPanel'
@@ -111,6 +111,20 @@ export function ModeratorLiveView({ workshopId }: ModeratorLiveViewProps) {
     }
   }
 
+  const handlePreviousSession = async () => {
+    try {
+      const currentIndex = sessions.findIndex(s => s.id === currentSessionId)
+      const previousSession = sessions[currentIndex - 1]
+      
+      if (previousSession) {
+        await WorkshopService.startSession(workshopId, previousSession.id)
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+      }
+    } catch (error) {
+      console.error('Failed to start previous session:', error)
+    }
+  }
+
   const handleNextSession = async () => {
     try {
       const currentIndex = sessions.findIndex(s => s.id === currentSessionId)
@@ -125,12 +139,22 @@ export function ModeratorLiveView({ workshopId }: ModeratorLiveViewProps) {
     }
   }
 
-  const handlePushMaterial = () => {
-    console.log('Push material')
+  const handlePushMaterial = async () => {
+    try {
+      await WorkshopService.notifyParticipants(workshopId, 'material')
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+    } catch (error) {
+      console.error('Failed to push material notification:', error)
+    }
   }
 
-  const handleStartInteraction = () => {
-    console.log('Start interaction')
+  const handleStartInteraction = async () => {
+    try {
+      await WorkshopService.notifyParticipants(workshopId, 'interaction')
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+    } catch (error) {
+      console.error('Failed to push interaction notification:', error)
+    }
   }
 
   if (loading) {
@@ -154,29 +178,32 @@ export function ModeratorLiveView({ workshopId }: ModeratorLiveViewProps) {
   const workshopEndTime = new Date(workshop.date)
   workshopEndTime.setMinutes(workshopEndTime.getMinutes() + workshop.total_duration)
 
-  const statusIcon = status === 'running' ? '🟢' : status === 'paused' ? '🟡' : '⚪'
-  const statusText = status === 'running' ? 'Läuft' : status === 'paused' ? 'Pausiert' : 'Bereit'
-
   return (
     <View style={{ flex: 1 }}>
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 220 }}>
         <View style={styles.content}>
-        <Surface style={styles.header} elevation={0}>
-          <Text variant="displaySmall" style={styles.title}>
-            {workshop.title}
-          </Text>
-          <Chip icon={() => <Text>{statusIcon}</Text>} style={styles.statusChip}>
-            {statusText}
-          </Chip>
-        </Surface>
 
-        <View style={styles.timerContainer}>
-          <RingProgressTimer
-            remainingMs={displayRemainingMs}
-            totalMs={totalMs}
-            size={280}
-            strokeWidth={20}
-          />
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 32, gap: 24 }}>
+          {currentSession && (
+            <View style={{ flex: 1, minWidth: 280, alignItems: 'center' }}>
+              <Text variant="headlineMedium" style={{ fontWeight: 'bold', marginBottom: 4 }}>
+                {currentSession.title}
+              </Text>
+              <Text variant="bodyMedium" style={{ opacity: 0.6, textTransform: 'capitalize' }}>
+                {currentSession.type}
+              </Text>
+            </View>
+          )}
+
+          <View style={{ flex: 1, minWidth: 280, alignItems: 'center' }}>
+            <RingProgressTimer
+              remainingMs={displayRemainingMs}
+              totalMs={totalMs}
+              size={280}
+              strokeWidth={20}
+              status={status}
+            />
+          </View>
         </View>
 
         {currentSession && (
@@ -233,6 +260,7 @@ export function ModeratorLiveView({ workshopId }: ModeratorLiveViewProps) {
           onExtendTime={handleExtendTime}
           onPause={handlePause}
           onReset={handleReset}
+          onPreviousSession={handlePreviousSession}
           onNextSession={handleNextSession}
           onPushMaterial={handlePushMaterial}
           onStartInteraction={handleStartInteraction}
@@ -253,17 +281,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 24,
-  },
-  header: {
-    marginBottom: 24,
-    backgroundColor: 'transparent',
-  },
-  title: {
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  statusChip: {
-    alignSelf: 'flex-start',
+    paddingTop: 48,
   },
   timerContainer: {
     alignItems: 'center',

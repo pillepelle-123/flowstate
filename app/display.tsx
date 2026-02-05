@@ -1,10 +1,18 @@
 import React from 'react'
-import { View, StyleSheet } from 'react-native'
+import { View, StyleSheet, Text } from 'react-native'
+import { useLocalSearchParams } from 'expo-router'
 import { BeamerDashboard } from '../src/components/display'
 
 export default function DisplayScreen() {
-  // TODO: Workshop-ID aus URL-Parameter oder QR-Code
-  const workshopId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  const { workshopId } = useLocalSearchParams<{ workshopId?: string }>()
+
+  if (!workshopId) {
+    return (
+      <View style={styles.container}>
+        <Text style={{ color: '#ef4444', fontSize: 24 }}>Keine Workshop-ID angegeben</Text>
+      </View>
+    )
+  }
 
   return (
     <View style={styles.container}>

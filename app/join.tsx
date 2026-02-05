@@ -1,29 +1,36 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { View, Text, TextInput, TouchableOpacity } from 'react-native'
-import { QRCodeScanner } from '../components/participant/QRCodeScanner'
-import { JoinScreen } from '../components/participant/JoinScreen'
-import { ParticipantDashboard } from '../components/participant/ParticipantDashboard'
-import { Database } from '../types/database'
+import { useLocalSearchParams, router } from 'expo-router'
+import { QRCodeScanner } from '../src/components/participant/QRCodeScanner'
+import { JoinScreen } from '../src/components/participant/JoinScreen'
+import { ParticipantDashboard } from '../src/components/participant/ParticipantDashboard'
+import { Database } from '../src/types/database'
 
 type Participant = Database['public']['Tables']['participants']['Row']
 
 type ViewMode = 'scan' | 'manual' | 'join' | 'dashboard'
 
-export default function ParticipantScreen() {
+export default function JoinRoute() {
+  const { workshopId: urlWorkshopId } = useLocalSearchParams<{ workshopId?: string }>()
   const [mode, setMode] = useState<ViewMode>('scan')
   const [workshopId, setWorkshopId] = useState('')
   const [manualId, setManualId] = useState('')
   const [participant, setParticipant] = useState<Participant | null>(null)
 
+  useEffect(() => {
+    if (urlWorkshopId) {
+      setWorkshopId(urlWorkshopId)
+      setMode('join')
+    }
+  }, [urlWorkshopId])
+
   const handleScan = (scannedId: string) => {
-    setWorkshopId(scannedId)
-    setMode('join')
+    router.push(`/join?workshopId=${scannedId}`)
   }
 
   const handleManualSubmit = () => {
     if (manualId.trim()) {
-      setWorkshopId(manualId.trim())
-      setMode('join')
+      router.push(`/join?workshopId=${manualId.trim()}`)
     }
   }
 

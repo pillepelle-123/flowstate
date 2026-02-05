@@ -5,20 +5,13 @@ type Participant = Database['public']['Tables']['participants']['Row']
 type ParticipantInsert = Database['public']['Tables']['participants']['Insert']
 
 export class ParticipantService {
-  // Anonymous Sign-in und Teilnehmer erstellen
+  // Teilnehmer ohne Auth erstellen
   static async joinWorkshop(workshopId: string, displayName?: string): Promise<{ participant: Participant; error: null } | { participant: null; error: string }> {
     try {
-      // Anonymous Sign-in
-      const { data: authData, error: authError } = await supabase.auth.signInAnonymously()
-      
-      if (authError) {
-        return { participant: null, error: authError.message }
-      }
-
       // Generiere anonymous_id
       const anonymousId = `Teilnehmer-${Math.floor(Math.random() * 9999) + 1}`
 
-      // Erstelle Teilnehmer-Eintrag
+      // Erstelle Teilnehmer-Eintrag direkt ohne Auth
       const participantData: ParticipantInsert = {
         workshop_id: workshopId,
         anonymous_id: anonymousId,
